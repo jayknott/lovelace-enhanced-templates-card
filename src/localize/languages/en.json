@@ -1,0 +1,33 @@
+{
+  "common": {
+    "version": "Version",
+    "invalid_configuration": "Invalid configuration",
+    "show_warning": "Show Warning",
+    "show_error": "Show Error"
+  },
+  "config": {
+    "registry": "Registry"
+  },
+  "area": {
+    "one": "Area",
+    "other": "Areas"
+  },
+  "entity": {
+    "one": "Entity",
+    "other": "Entities"
+  },
+  "intro": {
+    "area": "Update settings for rooms (areas). After updating, you may need to rebuild the counters from the settings menu to see your changes.",
+    "entity": "Update settings for devices (entities). After updating, you may need to rebuild the counters from the settings menu to see your changes."
+  },
+  "settings": {
+    "entity_type": "Entity Type",
+    "sort_order": "Sort Order",
+    "visible": "Visible",
+    "visible_area_description": "Areas that are not visible will not be displayed automatically in dashboards."
+  },
+  "title": {
+    "area": "Area Settings",
+    "entity": "Entity Settings"
+  }
+}
