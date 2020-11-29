@@ -104,7 +104,7 @@ jspm_packages/
 # FuseBox cache
 .fusebox/
 
-/build
-/dist
+# /build
+# /dist
 __image_snapshots__
 /.ssl
