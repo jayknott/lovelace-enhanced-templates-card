@@ -1,4 +1,9 @@
-import { HomeAssistant, LovelaceCard, LovelaceCardConfig, LovelaceCardEditor } from 'custom-card-helpers';
+import {
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardConfig,
+  LovelaceCardEditor,
+} from 'custom-card-helpers';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -7,17 +12,22 @@ declare global {
   }
 }
 
-// TODO Add your configuration elements here for type-checking
 export interface EnhancedTemplatesCardConfig extends LovelaceCardConfig {
   type: string;
+  hide_title?: boolean;
+  hide_intro?: boolean;
   registry?: 'area' | 'entity';
   test_gui?: boolean;
 }
 
+export interface EnhancedTemplatesConfigChangedEvent extends Event {
+  detail: { config: EnhancedTemplatesCardConfig };
+}
+
 export interface HaPartialCustomElement extends HTMLElement {
-  hass?: Any;
+  hass?: any;
   _updateRoutes: () => void;
-  routerOptions: Any;
+  routerOptions: any;
   _computeParsedEventData: (yaml: string) => void;
   firstUpdated: (changedProps: object) => void;
 }

@@ -6,6 +6,8 @@
     "show_error": "Show Error"
   },
   "config": {
+    "hide_intro": "Hide Introduction",
+    "hide_title": "Hide Title",
     "registry": "Registry"
   },
   "area": {
