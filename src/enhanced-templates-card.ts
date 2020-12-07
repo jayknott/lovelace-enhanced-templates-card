@@ -153,13 +153,13 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   }
 
   // https://lit-element.polymer-project.org/guide/lifecycle#shouldupdate
-  protected shouldUpdate(changedProps: PropertyValues): boolean {
-    if (!this.config) {
-      return false;
-    }
+  // protected shouldUpdate(changedProps: PropertyValues): boolean {
+  //   if (!this.config) {
+  //     return false;
+  //   }
 
-    return hasConfigOrEntityChanged(this, changedProps, false);
-  }
+  //   return hasConfigOrEntityChanged(this, changedProps, false);
+  // }
 
   // https://lit-element.polymer-project.org/guide/templates
   protected render(): TemplateResult | void {
