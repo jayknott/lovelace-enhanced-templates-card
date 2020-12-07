@@ -7,12 +7,10 @@ import {
   CSSResult,
   TemplateResult,
   css,
-  PropertyValues,
   internalProperty,
 } from 'lit-element';
 import {
   HomeAssistant,
-  hasConfigOrEntityChanged,
   LovelaceCard,
   LovelaceCardEditor,
   getLovelace,
@@ -114,17 +112,23 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
 
   // TODO Add any properties that should cause your element to re-render here
   // https://lit-element.polymer-project.org/guide/properties
-  @property({ attribute: false }) public hass!: HomeAssistant;
+  @property({ attribute: false }) public _hass!: HomeAssistant;
   @internalProperty() private config!: EnhancedTemplatesCardConfig;
   @internalProperty() private _area_id?: string;
   @internalProperty() private _entity_type?: string;
-  @internalProperty() private _entity_types: Array<string> = [];
+  @internalProperty() private _entity_types?: Array<string>;
   @internalProperty() private _icon?: string;
   @internalProperty() private _name?: string;
   @internalProperty() private _selectedArea?: EnhancedArea;
   @internalProperty() private _selectedEntity?: EnhancedEntity;
   @internalProperty() private _sortOrder?: number;
   @internalProperty() private _visible?: boolean;
+
+  set hass(hass: HomeAssistant) {
+    this._hass = hass;
+
+    if (!this._entity_types) this._load_entity_types();
+  }
 
   // https://lit-element.polymer-project.org/guide/properties#accessors-custom
   public async setConfig(config: EnhancedTemplatesCardConfig): Promise<void> {
@@ -136,7 +140,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
 
     await _ha_entity_picker();
     await _config_elements();
-    await this._load_entity_types();
+    // await this._load_entity_types();
 
     this.addEventListener('config-changed', this.handleConfigChanged);
   }
@@ -147,19 +151,11 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   }
 
   protected async _load_entity_types() {
-    this._entity_types = await this.hass.callWS({
-      type: 'enhanced_templates_entity_types',
-    });
+    this._entity_types =
+      (await this._hass.callWS({
+        type: 'enhanced_templates_entity_types',
+      })) || [];
   }
-
-  // https://lit-element.polymer-project.org/guide/lifecycle#shouldupdate
-  // protected shouldUpdate(changedProps: PropertyValues): boolean {
-  //   if (!this.config) {
-  //     return false;
-  //   }
-
-  //   return hasConfigOrEntityChanged(this, changedProps, false);
-  // }
 
   // https://lit-element.polymer-project.org/guide/templates
   protected render(): TemplateResult | void {
@@ -189,7 +185,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
           }
           <div>
             <ha-area-picker
-              .hass=${this.hass}
+              .hass=${this._hass}
               .value=${this._selectedArea?.id}
               @value-changed=${this._areaPicked}
             />
@@ -199,12 +195,12 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
             <ha-icon-input
               .value=${this._icon}
               @value-changed=${this._iconChanged}
-              .label=${this.hass.localize(
+              .label=${this._hass.localize(
                 'ui.dialogs.entity_registry.editor.icon',
               )}
               .placeholder=${DEFAULT_AREA_ICON}
               .disabled=${this._disabled()}
-              .errorMessage=${this.hass.localize(
+              .errorMessage=${this._hass.localize(
                 'ui.dialogs.entity_registry.editor.icon_error',
               )}
             >
@@ -213,7 +209,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
           <paper-input
             .value=${this._name}
             @value-changed=${this._nameChanged}
-            .label=${this.hass.localize(
+            .label=${this._hass.localize(
               'ui.dialogs.entity_registry.editor.name',
             )}
             .placeholder=${this._selectedArea?.original_name}
@@ -273,7 +269,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
           }
           <div>
             <ha-entity-picker
-              .hass=${this.hass}
+              .hass=${this._hass}
               .value=${this._selectedEntity?.entity_id}
               @value-changed=${this._entityPicked}
             />
@@ -281,7 +277,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
           </div>
           <div>
             <ha-area-picker
-              .hass=${this.hass}
+              .hass=${this._hass}
               .value=${this._selectedEntity?.area_id}
               @value-changed=${this._entityAreaPicked}
               .placeholder=${this._selectedEntity?.original_area_id}
@@ -362,7 +358,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     if (ev.detail.value === '') {
       this._selectedArea = { id: ev.detail.value };
     } else {
-      this._selectedArea = await this.hass.callWS({
+      this._selectedArea = await this._hass.callWS({
         type: 'enhanced_templates_area_settings',
         area_id: ev.detail.value,
       });
@@ -386,7 +382,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     if (ev.detail.value === '') {
       this._selectedEntity = { entity_id: ev.detail.value };
     } else {
-      this._selectedEntity = await this.hass.callWS({
+      this._selectedEntity = await this._hass.callWS({
         type: 'enhanced_templates_entity_settings',
         entity_id: ev.detail.value,
       });
@@ -433,7 +429,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   }
 
   private _updateAreaSettings(): void {
-    this.hass.callService('enhanced_templates', 'set_area', {
+    this._hass.callService('enhanced_templates', 'set_area', {
       area_id: this._selectedArea?.id,
       icon: this._icon,
       name: this._name,
@@ -443,7 +439,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   }
 
   private _updateEntitySettings(): void {
-    this.hass.callService('enhanced_templates', 'set_entity', {
+    this._hass.callService('enhanced_templates', 'set_entity', {
       entity_id: this._selectedEntity?.entity_id,
       area_id: this._area_id,
       entity_type: this._entity_type,
