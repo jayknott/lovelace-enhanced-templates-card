@@ -21,7 +21,7 @@
   "intro": {
     "area": "Update settings for rooms (areas).",
     "entity": "Update settings for devices (entities).",
-    "update": "After updating, you will need to rebuild the counters (in the settings menu) to see your changes."
+    "update": "After updating, you will need to reload Lovelace to see your changes."
   },
   "settings": {
     "entity_type": "Entity Type",
