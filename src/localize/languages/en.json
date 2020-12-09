@@ -19,8 +19,9 @@
     "other": "Entities"
   },
   "intro": {
-    "area": "Update settings for rooms (areas). After updating, you may need to rebuild the counters from the settings menu to see your changes.",
-    "entity": "Update settings for devices (entities). After updating, you may need to rebuild the counters from the settings menu to see your changes."
+    "area": "Update settings for rooms (areas).",
+    "entity": "Update settings for devices (entities).",
+    "update": "After updating, you will need to rebuild the counters (in the settings menu) to see your changes."
   },
   "settings": {
     "entity_type": "Entity Type",

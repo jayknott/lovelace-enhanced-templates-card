@@ -192,7 +192,9 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
           ${
             this.config.hide_intro
               ? null
-              : html`<p>${localize('intro.area')}</p>`
+              : html`<p>
+                  ${localize('intro.area')} ${localize('intro.update')}
+                </p>`
           }
           <div>
             <ha-area-picker
@@ -276,7 +278,9 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
           ${
             this.config.hide_intro
               ? null
-              : html`<p>${localize('intro.entity')}</p>`
+              : html`<p>
+                  ${localize('intro.entity')} ${localize('intro.update')}
+                </p>`
           }
           <div>
             <ha-entity-picker
