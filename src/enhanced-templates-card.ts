@@ -123,11 +123,24 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   @internalProperty() private _selectedEntity?: EnhancedEntity;
   @internalProperty() private _sortOrder?: number;
   @internalProperty() private _visible?: boolean;
+  @internalProperty() private _last_hash: string = '';
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
 
     if (!this._entity_types) this._load_entity_types();
+
+    const hash = location.hash?.substr(1);
+
+    if (hash && hash !== this._last_hash) {
+      if (this.config.registry === 'entity') {
+        this._entityPicked({ detail: { value: hash } });
+      } else {
+        this._areaPicked({ detail: { value: hash } });
+      }
+    }
+
+    this._last_hash = hash;
   }
 
   // https://lit-element.polymer-project.org/guide/properties#accessors-custom
@@ -140,14 +153,12 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
 
     await _ha_entity_picker();
     await _config_elements();
-    // await this._load_entity_types();
 
     this.addEventListener('config-changed', this.handleConfigChanged);
   }
 
   protected handleConfigChanged(ev: Event) {
     this.config = (ev as EnhancedTemplatesConfigChangedEvent).detail.config;
-    console.log((ev as EnhancedTemplatesConfigChangedEvent).detail.config);
   }
 
   protected async _load_entity_types() {
@@ -358,10 +369,12 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     if (ev.detail.value === '') {
       this._selectedArea = { id: ev.detail.value };
     } else {
-      this._selectedArea = await this._hass.callWS({
-        type: 'enhanced_templates_area_settings',
-        area_id: ev.detail.value,
-      });
+      try {
+        this._selectedArea = await this._hass.callWS({
+          type: 'enhanced_templates_area_settings',
+          area_id: ev.detail.value,
+        });
+      } catch {}
     }
     this._icon =
       this._selectedArea?.icon === DEFAULT_AREA_ICON
@@ -382,12 +395,14 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     if (ev.detail.value === '') {
       this._selectedEntity = { entity_id: ev.detail.value };
     } else {
-      this._selectedEntity = await this._hass.callWS({
-        type: 'enhanced_templates_entity_settings',
-        entity_id: ev.detail.value,
-      });
+      try {
+        this._selectedEntity = await this._hass.callWS({
+          type: 'enhanced_templates_entity_settings',
+          entity_id: ev.detail.value,
+        });
+      } catch {}
     }
-    console.log(this._selectedEntity);
+
     this._area_id =
       this._selectedEntity?.area_id === this._selectedEntity?.original_area_id
         ? undefined
