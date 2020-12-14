@@ -53,3 +53,8 @@ export interface EnhancedEntity {
   visible?: boolean;
   disabled?: boolean;
 }
+
+export interface AreaRegistryEntry {
+  area_id: string;
+  name: string;
+}

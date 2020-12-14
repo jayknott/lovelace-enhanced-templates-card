@@ -15,10 +15,13 @@ import {
   LovelaceCardEditor,
   getLovelace,
 } from 'custom-card-helpers';
+import { Connection, createCollection } from 'home-assistant-js-websocket';
+import { Store } from 'home-assistant-js-websocket/dist/store';
 
 import './editor';
 
 import type {
+  AreaRegistryEntry,
   EnhancedArea,
   EnhancedEntity,
   EnhancedTemplatesCardConfig,
@@ -66,6 +69,73 @@ const _ha_entity_picker = async () => {
   await dtr.routerOptions.routes.state.load();
 };
 
+const fetchAreaRegistry = (conn: Connection) =>
+  conn
+    .sendMessagePromise({
+      type: 'config/area_registry/list',
+    })
+    .then((areas) =>
+      (areas as AreaRegistryEntry[]).sort((ent1, ent2) => {
+        if (ent1.name > ent2.name) return 1;
+        if (ent1.name < ent2.name) return -1;
+        return 0;
+      }),
+    );
+
+const debounce = <T extends (...args) => unknown>(
+  func: T,
+  wait,
+  immediate = false,
+): T => {
+  let timeout;
+  // @ts-ignore
+  return function (...args) {
+    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const context = this;
+    const later = () => {
+      timeout = null;
+      if (!immediate) {
+        func.apply(context, args);
+      }
+    };
+    const callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) {
+      func.apply(context, args);
+    }
+  };
+};
+
+const subscribeAreaRegistryUpdates = (
+  conn: Connection,
+  store: Store<AreaRegistryEntry[]>,
+) =>
+  conn.subscribeEvents(
+    debounce(
+      () =>
+        fetchAreaRegistry(conn).then((areas: AreaRegistryEntry[]) =>
+          store.setState(areas, true),
+        ),
+      500,
+      true,
+    ),
+    'area_registry_updated',
+  );
+
+const subscribeAreaRegistry = (
+  conn: Connection,
+  onChange: (areas: AreaRegistryEntry[]) => void,
+) =>
+  createCollection<AreaRegistryEntry[]>(
+    '_areaRegistry',
+    fetchAreaRegistry,
+    subscribeAreaRegistryUpdates,
+    conn,
+    onChange,
+  );
+
 const _config_elements = async () => {
   if (customElements.get('ha-area-picker')) return;
 
@@ -79,23 +149,42 @@ const _config_elements = async () => {
   await ppr.routerOptions.routes.tmp.load();
 
   await customElements.whenDefined('ha-panel-config');
-  const cr = document.createElement(
+  const pc = document.createElement(
     'ha-panel-config',
   ) as HaPartialCustomElement;
 
-  await cr.routerOptions.routes.devices.load();
+  await pc.routerOptions.routes.devices.load();
+  await customElements.whenDefined('ha-config-devices');
+  const cd = document.createElement(
+    'ha-config-devices',
+  ) as HaPartialCustomElement;
+  cd.firstUpdated({});
+
+  // await cd.routerOptions.routes.device.load();
   await customElements.whenDefined('ha-config-device-page');
   const cdp = document.createElement(
     'ha-config-device-page',
   ) as HaPartialCustomElement;
   cdp.firstUpdated({});
 
-  await cr.routerOptions.routes.entities.load();
+  await customElements.whenDefined('dialog-device-registry-detail');
+  const drd = document.createElement(
+    'dialog-device-registry-detail',
+  ) as HaPartialCustomElement;
+  // cdp.firstUpdated({});
+  (drd as any).render();
+
+  await pc.routerOptions.routes.entities.load();
   await customElements.whenDefined('ha-config-entities');
   const ce = document.createElement(
     'ha-config-entities',
   ) as HaPartialCustomElement;
   ce.firstUpdated({});
+
+  await customElements.whenDefined('ha-area-picker');
+  const ap = document.createElement('ha-area-picker');
+
+  console.log("You're finally here");
 };
 
 @customElement('enhanced-templates-card')
@@ -114,6 +203,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   // https://lit-element.polymer-project.org/guide/properties
   @property({ attribute: false }) public _hass!: HomeAssistant;
   @internalProperty() private config!: EnhancedTemplatesCardConfig;
+  @internalProperty() private _areas?: AreaRegistryEntry[];
   @internalProperty() private _area_id?: string;
   @internalProperty() private _entity_type?: string;
   @internalProperty() private _entity_types?: Array<string>;
@@ -124,6 +214,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   @internalProperty() private _sortOrder?: number;
   @internalProperty() private _visible?: boolean;
   @internalProperty() private _last_hash: string = '';
+  @internalProperty() private _unsub?: () => void;
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
@@ -141,6 +232,16 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     }
 
     this._last_hash = hash;
+
+    if (!this._unsub) {
+      fetchAreaRegistry(this._hass.connection).then(
+        (areas) => (this._areas = areas),
+      );
+
+      this._unsub = subscribeAreaRegistry(this._hass.connection!, (areas) => {
+        this._areas = areas;
+      });
+    }
   }
 
   // https://lit-element.polymer-project.org/guide/properties#accessors-custom
@@ -170,9 +271,9 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
 
   // https://lit-element.polymer-project.org/guide/templates
   protected render(): TemplateResult | void {
-    return this.config.registry === 'area'
-      ? this._areaSettings()
-      : this._entitySettings();
+    return this.config.registry === 'entity'
+      ? this._entitySettings()
+      : this._areaSettings();
   }
 
   private _disabled(): boolean {
@@ -185,25 +286,36 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
 
   private _areaSettings(): TemplateResult {
     return html`
-      <ha-card .header=${
-        this.config.hide_title ? null : localize('title.area')
-      }>
+      <ha-card
+        .header=${this.config.hide_title ? null : localize('title.area')}
+      >
         <div class="card-content">
-          ${
-            this.config.hide_intro
-              ? null
-              : html`<p>
-                  ${localize('intro.area')} ${localize('intro.update')}
-                </p>`
-          }
-          <div>
-            <ha-area-picker
-              .hass=${this._hass}
-              .value=${this._selectedArea?.id}
-              @value-changed=${this._areaPicked}
-            />
-            </ha-area-picker>
-          </div>
+          ${this.config.hide_intro
+            ? null
+            : html`<p>
+                ${localize('intro.area')} ${localize('intro.update')}
+              </p>`}
+          <paper-dropdown-menu
+            class="full-width"
+            label-float
+            dynamic-align
+            .label=${localize('settings.area')}
+          >
+            <paper-listbox
+              slot="dropdown-content"
+              attr-for-selected="item-name"
+              .selected=${this._selectedArea?.id}
+              @selected-changed=${this._areaPicked}
+            >
+              ${this._areas?.map(
+                (area) => html`
+                  <paper-item item-name=${area.area_id}>
+                    ${area.name}
+                  </paper-item>
+                `,
+              )}
+            </paper-listbox>
+          </paper-dropdown-menu>
           <div>
             <ha-icon-input
               .value=${this._icon}
@@ -232,7 +344,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
           <paper-input
             .value=${this._sortOrder}
             @value-changed=${this._sortOrderChanged}
-            pattern="[0-9]+([\.][0-9]+)?"
+            pattern="[0-9]+([.][0-9]+)?"
             type="number"
             .label=${localize('settings.sort_order')}
             .placeholder=${DEFAULT_SORT_ORDER}
@@ -248,23 +360,23 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
             >
             </ha-switch>
             <div>
-              <div class=${this._disabled() ? 'disabled' : ''}>${localize(
-      'settings.visible',
-    )}</div>
-              <div class=${
-                this._disabled() ? 'disabled' : 'secondary'
-              }>${localize('settings.visible_area_description')}</div>
+              <div class=${this._disabled() ? 'disabled' : ''}>
+                ${localize('settings.visible')}
+              </div>
+              <div class=${this._disabled() ? 'disabled' : 'secondary'}>
+                ${localize('settings.visible_area_description')}
+              </div>
             </div>
           </div>
         </div>
         <div class="buttons">
-              <mwc-button
-                @click=${this._updateAreaSettings}
-                .disabled=${this._disabled()}
-              >
-                Update
-              </mwc-button>
-          </div>
+          <mwc-button
+            @click=${this._updateAreaSettings}
+            .disabled=${this._disabled()}
+          >
+            Update
+          </mwc-button>
+        </div>
       </ha-card>
     `;
   }
@@ -290,15 +402,39 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
             />
             </ha-entity-picker>
           </div>
-          <div>
-            <ha-area-picker
-              .hass=${this._hass}
-              .value=${this._selectedEntity?.area_id}
-              @value-changed=${this._entityAreaPicked}
-              .placeholder=${this._selectedEntity?.original_area_id}
-              .disabled=${this._disabled()}
-            />
-            </ha-area-picker>
+          <paper-dropdown-menu
+            class="full-width"
+            label-float
+            dynamic-align
+            .label=${localize('settings.area')}
+            .disabled=${this._disabled()}
+            .placeholder=${
+              this._selectedEntity?.original_area_id
+                ? this._areas?.find(
+                    (area) =>
+                      area.area_id === this._selectedEntity?.original_area_id,
+                  )?.name
+                : undefined
+            }
+          >
+            <paper-listbox
+              slot="dropdown-content"
+              attr-for-selected="item-name"
+              .selected=${this._area_id}
+              @selected-changed=${this._entityAreaPicked}
+            >
+              <paper-item item-name="">None</paper-item>
+              ${this._areas?.map(
+                (area) => html`
+                  <paper-item item-name=${area.area_id}>
+                    ${area.name}
+                  </paper-item>
+                `,
+              )}
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <div class=${this._disabled() ? 'disabled' : 'secondary'} >
+            ${localize('settings.area_description')}
           </div>
           ${
             this._entity_types?.length == 0

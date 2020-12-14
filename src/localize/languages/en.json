@@ -24,6 +24,8 @@
     "update": "After updating, you will need to reload Lovelace to see your changes."
   },
   "settings": {
+    "area": "Area",
+    "area_description": "Overwrite the area set in the registry for this entity.",
     "entity_type": "Entity Type",
     "sort_order": "Sort Order",
     "visible": "Visible",
