@@ -16,7 +16,7 @@ export interface EnhancedTemplatesCardConfig extends LovelaceCardConfig {
   type: string;
   hide_title?: boolean;
   hide_intro?: boolean;
-  registry?: 'area' | 'entity';
+  registry?: 'area' | 'entity' | 'person';
   test_gui?: boolean;
 }
 
@@ -52,6 +52,14 @@ export interface EnhancedEntity {
   sort_order?: number;
   visible?: boolean;
   disabled?: boolean;
+}
+
+export interface EnhancedPerson {
+  id: string;
+  name?: string;
+  original_name?: string;
+  sort_order?: number;
+  visible?: boolean;
 }
 
 export interface AreaRegistryEntry {

@@ -24,6 +24,7 @@ import type {
   AreaRegistryEntry,
   EnhancedArea,
   EnhancedEntity,
+  EnhancedPerson,
   EnhancedTemplatesCardConfig,
   EnhancedTemplatesConfigChangedEvent,
   HaPartialCustomElement,
@@ -211,6 +212,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   @internalProperty() private _name?: string;
   @internalProperty() private _selectedArea?: EnhancedArea;
   @internalProperty() private _selectedEntity?: EnhancedEntity;
+  @internalProperty() private _selectedPerson?: EnhancedPerson;
   @internalProperty() private _sortOrder?: number;
   @internalProperty() private _visible?: boolean;
   @internalProperty() private _last_hash: string = '';
@@ -224,10 +226,16 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     const hash = location.hash?.substr(1);
 
     if (hash && hash !== this._last_hash) {
-      if (this.config.registry === 'entity') {
-        this._entityPicked({ detail: { value: hash } });
-      } else {
-        this._areaPicked({ detail: { value: hash } });
+      switch (this.config.registry) {
+        case 'entity':
+          this._entityPicked({ detail: { value: hash } });
+          break;
+        case 'person':
+          this._personPicked({ detail: { value: hash } });
+          break;
+        case 'area':
+        default:
+          this._areaPicked({ detail: { value: hash } });
       }
     }
 
@@ -271,237 +279,254 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
 
   // https://lit-element.polymer-project.org/guide/templates
   protected render(): TemplateResult | void {
-    return this.config.registry === 'entity'
-      ? this._entitySettings()
-      : this._areaSettings();
-  }
+    let title: string,
+      intro: string,
+      render: () => TemplateResult,
+      update: () => void;
 
-  private _disabled(): boolean {
-    if ((this.config.registry || 'area') === 'area') {
-      return !this._selectedArea || this._selectedArea.id === '';
+    switch (this.config.registry) {
+      case 'entity':
+        title = localize('title.entity');
+        intro = localize('intro.entity');
+        render = () => this._entitySettings();
+        update = this._updateEntitySettings;
+        break;
+      case 'person':
+        title = localize('title.person');
+        intro = localize('intro.person');
+        render = () => this._personSettings();
+        update = this._updatePersonSettings;
+        break;
+      case 'area':
+      default:
+        title = localize('title.area');
+        intro = localize('intro.area');
+        render = () => this._areaSettings();
+        update = this._updateAreaSettings;
     }
 
-    return !this._selectedEntity || this._selectedEntity.entity_id === '';
-  }
-
-  private _areaSettings(): TemplateResult {
     return html`
-      <ha-card
-        .header=${this.config.hide_title ? null : localize('title.area')}
-      >
-        <div class="card-content">
-          ${this.config.hide_intro
-            ? null
-            : html`<p>
-                ${localize('intro.area')} ${localize('intro.update')}
-              </p>`}
-          <paper-dropdown-menu
-            class="full-width"
-            label-float
-            dynamic-align
-            .label=${localize('settings.area')}
-          >
-            <paper-listbox
-              slot="dropdown-content"
-              attr-for-selected="item-name"
-              .selected=${this._selectedArea?.id}
-              @selected-changed=${this._areaPicked}
-            >
-              ${this._areas?.map(
-                (area) => html`
-                  <paper-item item-name=${area.area_id}>
-                    ${area.name}
-                  </paper-item>
-                `,
-              )}
-            </paper-listbox>
-          </paper-dropdown-menu>
-          <div>
-            <ha-icon-input
-              .value=${this._icon}
-              @value-changed=${this._iconChanged}
-              .label=${this._hass.localize(
-                'ui.dialogs.entity_registry.editor.icon',
-              )}
-              .placeholder=${DEFAULT_AREA_ICON}
-              .disabled=${this._disabled()}
-              .errorMessage=${this._hass.localize(
-                'ui.dialogs.entity_registry.editor.icon_error',
-              )}
-            >
-            </ha-icon-input>
-          </div>
-          <paper-input
-            .value=${this._name}
-            @value-changed=${this._nameChanged}
-            .label=${this._hass.localize(
-              'ui.dialogs.entity_registry.editor.name',
-            )}
-            .placeholder=${this._selectedArea?.original_name}
-            .disabled=${this._disabled()}
-          >
-          </paper-input>
-          <paper-input
-            .value=${this._sortOrder}
-            @value-changed=${this._sortOrderChanged}
-            pattern="[0-9]+([.][0-9]+)?"
-            type="number"
-            .label=${localize('settings.sort_order')}
-            .placeholder=${DEFAULT_SORT_ORDER}
-            .disabled=${this._disabled()}
-          >
-          </paper-input>
-          <div class="row">
-            <ha-switch
-              style="--mdc-theme-secondary:var(--switch-checked-color);"
-              .checked=${this._visible}
-              @change=${this._visibleChanged}
-              .disabled=${this._disabled()}
-            >
-            </ha-switch>
-            <div>
-              <div class=${this._disabled() ? 'disabled' : ''}>
-                ${localize('settings.visible')}
-              </div>
-              <div class=${this._disabled() ? 'disabled' : 'secondary'}>
-                ${localize('settings.visible_area_description')}
-              </div>
-            </div>
-          </div>
-        </div>
+      <ha-card .header=${this.config.hide_title ? null : title}>
+        <div class="card-content">${this._intro(intro)} ${render()}</div>
         <div class="buttons">
-          <mwc-button
-            @click=${this._updateAreaSettings}
-            .disabled=${this._disabled()}
-          >
-            Update
+          <mwc-button @click=${update} .disabled=${this._disabled()}>
+            ${localize('update.one')}
           </mwc-button>
         </div>
       </ha-card>
     `;
   }
 
-  private _entitySettings(): TemplateResult {
+  private _disabled(): boolean {
+    switch (this.config.registry) {
+      case 'entity':
+        return !this._selectedEntity || this._selectedEntity.entity_id === '';
+      case 'person':
+        return !this._selectedPerson || this._selectedPerson.id === '';
+      case 'area':
+      default:
+        return !this._selectedArea || this._selectedArea.id === '';
+    }
+  }
+
+  private _intro(content: string): TemplateResult | undefined {
+    if (this.config.hide_intro) return undefined;
+    return html`<p>${content} ${localize('intro.update')}</p>`;
+  }
+
+  private _areaDropDown({
+    allow_null = false,
+    disabled = false,
+    onSelectedChanged,
+    placeholder,
+    show_description = false,
+  }: {
+    allow_null?: boolean;
+    disabled?: boolean;
+    onSelectedChanged?: (event: any) => Promise<void> | void;
+    placeholder?: string;
+    show_description?: boolean;
+  }): TemplateResult {
     return html`
-      <ha-card .header=${
-        this.config.hide_title ? null : localize('title.entity')
-      }>
-        <div class="card-content">
-          ${
-            this.config.hide_intro
-              ? null
-              : html`<p>
-                  ${localize('intro.entity')} ${localize('intro.update')}
-                </p>`
-          }
-          <div>
-            <ha-entity-picker
-              .hass=${this._hass}
-              .value=${this._selectedEntity?.entity_id}
-              @value-changed=${this._entityPicked}
-            />
-            </ha-entity-picker>
+      <paper-dropdown-menu
+        class="full-width"
+        label-float
+        dynamic-align
+        .label=${localize('settings.area')}
+        .disabled=${disabled}
+        .placeholder=${placeholder}
+      >
+        <paper-listbox
+          slot="dropdown-content"
+          attr-for-selected="item-name"
+          .selected=${this._selectedArea?.id}
+          @selected-changed=${onSelectedChanged}
+        >
+          ${!allow_null
+            ? null
+            : html`<paper-item item-name="">None</paper-item>`}
+          ${this._areas?.map(
+            (area) => html`
+              <paper-item item-name=${area.area_id}> ${area.name} </paper-item>
+            `,
+          )}
+        </paper-listbox>
+      </paper-dropdown-menu>
+      ${!show_description
+        ? null
+        : html`<div class=${disabled ? 'disabled' : 'secondary'}>
+            ${localize('settings.area_description')}
+          </div>`}
+    `;
+  }
+
+  private _nameInput({
+    placeholder,
+  }: {
+    placeholder?: string;
+  }): TemplateResult {
+    return html`
+      <paper-input
+        .value=${this._name}
+        @value-changed=${this._nameChanged}
+        .label=${this._hass.localize('ui.dialogs.entity_registry.editor.name')}
+        .placeholder=${placeholder}
+        .disabled=${this._disabled()}
+      >
+      </paper-input>
+    `;
+  }
+
+  private _sortOrderInput(): TemplateResult {
+    return html`
+      <paper-input
+        .value=${this._sortOrder}
+        @value-changed=${this._sortOrderChanged}
+        pattern="[0-9]+([.][0-9]+)?"
+        type="number"
+        .label=${localize('settings.sort_order')}
+        .placeholder=${DEFAULT_SORT_ORDER}
+        .disabled=${this._disabled()}
+      >
+      </paper-input>
+    `;
+  }
+
+  private _visibleInput(): TemplateResult {
+    return html`
+      <div class="row">
+        <ha-switch
+          style="--mdc-theme-secondary:var(--switch-checked-color);"
+          .checked=${this._visible}
+          @change=${this._visibleChanged}
+          .disabled=${this._disabled()}
+        >
+        </ha-switch>
+        <div>
+          <div class=${this._disabled() ? 'disabled' : ''}>
+            ${localize('settings.visible')}
           </div>
-          <paper-dropdown-menu
+          <div class=${this._disabled() ? 'disabled' : 'secondary'}>
+            ${localize('settings.visible_area_description')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private _areaSettings(): TemplateResult {
+    return html`
+      ${this._areaDropDown({ onSelectedChanged: this._areaPicked })}
+      <div>
+        <ha-icon-input
+          .value=${this._icon}
+          @value-changed=${this._iconChanged}
+          .label=${this._hass.localize(
+            'ui.dialogs.entity_registry.editor.icon',
+          )}
+          .placeholder=${DEFAULT_AREA_ICON}
+          .disabled=${this._disabled()}
+          .errorMessage=${this._hass.localize(
+            'ui.dialogs.entity_registry.editor.icon_error',
+          )}
+        >
+        </ha-icon-input>
+      </div>
+      ${this._nameInput({ placeholder: this._selectedArea?.original_name })}
+      ${this._sortOrderInput()} ${this._visibleInput()}
+    `;
+  }
+
+  private _entitySettings(): TemplateResult {
+    const area_placeholder = this._selectedEntity?.original_area_id
+      ? this._areas?.find(
+          (area) => area.area_id === this._selectedEntity?.original_area_id,
+        )?.name
+      : undefined;
+
+    const entity_types =
+      this._entity_types?.length == 0
+        ? undefined
+        : html`<paper-dropdown-menu
             class="full-width"
             label-float
             dynamic-align
-            .label=${localize('settings.area')}
-            .disabled=${this._disabled()}
-            .placeholder=${
-              this._selectedEntity?.original_area_id
-                ? this._areas?.find(
-                    (area) =>
-                      area.area_id === this._selectedEntity?.original_area_id,
-                  )?.name
-                : undefined
-            }
+            .label=${localize('settings.entity_type')}
+            .disabled=${this._disabled() || this._entity_types?.length == 0}
+            .placeholder=${this._selectedEntity?.original_entity_type}
           >
             <paper-listbox
               slot="dropdown-content"
               attr-for-selected="item-name"
-              .selected=${this._area_id}
-              @selected-changed=${this._entityAreaPicked}
+              .selected=${this._entity_type || ''}
+              @selected-changed=${this._entityTypePicked}
             >
               <paper-item item-name="">None</paper-item>
-              ${this._areas?.map(
-                (area) => html`
-                  <paper-item item-name=${area.area_id}>
-                    ${area.name}
-                  </paper-item>
+              ${this._entity_types?.map(
+                (type) => html`
+                  <paper-item item-name=${type}> ${type} </paper-item>
                 `,
               )}
             </paper-listbox>
-          </paper-dropdown-menu>
-          <div class=${this._disabled() ? 'disabled' : 'secondary'} >
-            ${localize('settings.area_description')}
-          </div>
-          ${
-            this._entity_types?.length == 0
-              ? undefined
-              : html`
-                  <paper-dropdown-menu
-                    class="full-width"
-                    label-float
-                    dynamic-align
-                    .label=${localize('settings.entity_type')}
-                    .disabled=${this._disabled() ||
-                    this._entity_types?.length == 0}
-                    .placeholder=${this._selectedEntity?.original_entity_type}
-                  >
-                    <paper-listbox
-                      slot="dropdown-content"
-                      attr-for-selected="item-name"
-                      .selected=${this._selectedEntity?.entity_type || ''}
-                      @selected-changed=${this._entityTypePicked}
-                    >
-                      <paper-item item-name="">None</paper-item>
-                      ${this._entity_types?.map(
-                        (type) => html`
-                          <paper-item item-name=${type}> ${type} </paper-item>
-                        `,
-                      )}
-                    </paper-listbox>
-                  </paper-dropdown-menu>
-                `
-          }
-          <paper-input
-            .value=${this._sortOrder}
-            @value-changed=${this._sortOrderChanged}
-            pattern="[0-9]+([\.][0-9]+)?"
-            type="number"
-            .label=${localize('settings.sort_order')}
-            .placeholder=${DEFAULT_SORT_ORDER}
-            .disabled=${this._disabled()}
-          >
-          </paper-input>
-          <div class="row">
-            <ha-switch
-              style="--mdc-theme-secondary:var(--switch-checked-color);"
-              .checked=${this._visible}
-              @change=${this._visibleChanged}
-              .disabled=${this._disabled()}
-            >
-            </ha-switch>
-            <div>
-              <div class=${this._disabled() ? 'disabled' : ''} >${localize(
-      'settings.visible',
-    )}</div>
-              <div class=${
-                this._disabled() ? 'disabled' : 'secondary'
-              }>${localize('settings.visible_area_description')}</div>
-            </div>
-          </div>
-        </div>
-        <div class="buttons">
-              <mwc-button
-                @click=${this._updateEntitySettings}
-                .disabled=${this._disabled()}
-              >
-                Update
-              </mwc-button>
-          </div>
-      </ha-card>
+          </paper-dropdown-menu>`;
+
+    return html`
+      <div>
+        <ha-entity-picker
+          .hass=${this._hass}
+          .value=${this._selectedEntity?.entity_id}
+          @value-changed=${this._entityPicked}
+        />
+        </ha-entity-picker>
+      </div>
+      ${this._areaDropDown({
+        allow_null: true,
+        disabled: this._disabled(),
+        onSelectedChanged: this._entityAreaPicked,
+        placeholder: area_placeholder,
+      })}
+      ${entity_types}
+      ${this._sortOrderInput()}
+      ${this._visibleInput()}
+    `;
+  }
+
+  private _personSettings(): TemplateResult {
+    return html`
+      <div>
+        <ha-entity-picker
+          .hass=${this._hass}
+          .value=${`person.${this._selectedPerson?.id}`}
+          .includeDomains=${['person']}
+          .hideClearIcon=${true}
+          .label=${localize('person.one')}
+          @value-changed=${this._personPicked}
+        />
+        </ha-entity-picker>
+      </div>
+      ${this._nameInput({ placeholder: this._selectedPerson?.original_name })}
+      ${this._sortOrderInput()}
+      ${this._visibleInput()}
     `;
   }
 
@@ -559,6 +584,32 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     this._visible = this._selectedEntity?.visible;
   }
 
+  private async _personPicked(ev): Promise<void> {
+    if (ev.detail.value === '') {
+      this._selectedPerson = { id: ev.detail.value };
+    } else {
+      try {
+        console.log(ev.detail.value.split('.')[1]);
+        this._selectedPerson = await this._hass.callWS({
+          type: 'enhanced_templates_person_settings',
+          person_id: ev.detail.value.split('.')[1],
+        });
+      } catch {}
+    }
+
+    console.log(this._selectedPerson);
+
+    this._name =
+      this._selectedPerson?.name === this._selectedPerson?.original_name
+        ? undefined
+        : this._selectedPerson?.name;
+    this._sortOrder =
+      this._selectedPerson?.sort_order === DEFAULT_SORT_ORDER
+        ? undefined
+        : this._selectedPerson?.sort_order;
+    this._visible = this._selectedPerson?.visible;
+  }
+
   private _entityAreaPicked(ev): void {
     this._area_id = ev.detail.value;
   }
@@ -598,6 +649,15 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
       entity_id: this._selectedEntity?.entity_id,
       area_id: this._area_id,
       entity_type: this._entity_type,
+      sort_order: this._sortOrder,
+      visible: this._visible,
+    });
+  }
+
+  private _updatePersonSettings(): void {
+    this._hass.callService('enhanced_templates', 'set_person', {
+      id: this._selectedPerson?.id,
+      name: this._name,
       sort_order: this._sortOrder,
       visible: this._visible,
     });

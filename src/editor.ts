@@ -63,6 +63,7 @@ export class EnhancedTemplatesCardEditor
             >
               <paper-item value="area">${localize('area.one')}</paper-item>
               <paper-item value="entity">${localize('entity.one')}</paper-item>
+              <paper-item value="person">${localize('person.one')}</paper-item>
             </paper-listbox>
           </paper-dropdown-menu>
           <div class="row">

@@ -21,7 +21,12 @@
   "intro": {
     "area": "Update settings for rooms (areas).",
     "entity": "Update settings for devices (entities).",
+    "person": "Update settings for persons (users).",
     "update": "After updating, you will need to reload Lovelace to see your changes."
+  },
+  "person": {
+    "one": "Person",
+    "other": "Persons"
   },
   "settings": {
     "area": "Area",
@@ -33,6 +38,11 @@
   },
   "title": {
     "area": "Area Settings",
-    "entity": "Entity Settings"
+    "entity": "Entity Settings",
+    "person": "Person Settings"
+  },
+  "update": {
+    "one": "Update",
+    "other": "Updates"
   }
 }
