@@ -1,5 +1,5 @@
 {
-  "name": "enhanced_templates_card",
+  "name": "lovelace-enhanced-templates-card",
   "version": "0.1.0",
   "description": "Lovelace card to update the settings provide by the Enhanced Templates integration.",
   "module": "enhanced-templates-card.js",
