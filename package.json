@@ -7,14 +7,10 @@
     "node": "14.x"
   },
   "scripts": {
+    "start": "ROLLUP_WATCH=true rollup -c --watch",
     "build": "npm run lint && npm run rollup",
-    "lint": "run-p lint-eslint lint-tsc",
-    "lint-eslint": "eslint --cache --ext .js,.jsx,.ts,.tsx --format=pretty ./",
-    "lint-tsc": "tsc --noEmit",
-    "rollup": "rollup -c",
-    "start": "rollup -c rollup.config.dev.js --watch",
-    "typecheck": "tsc --noEmit",
-    "typecheck--watch": "npm run typecheck -- --watch"
+    "lint": "eslint src/*.ts",
+    "rollup": "rollup -c"
   },
   "keywords": [
     "home-assistant",

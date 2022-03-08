@@ -10,19 +10,13 @@ import {
   css,
   internalProperty,
 } from 'lit-element';
-import {
-  HomeAssistant,
-  fireEvent,
-  LovelaceCardEditor,
-} from 'custom-card-helpers';
+import { HomeAssistant, fireEvent, LovelaceCardEditor } from 'custom-card-helpers';
 
 import { localize } from './localize/localize';
 import { EnhancedTemplatesCardConfig } from './types';
 
 @customElement('enhanced-templates-card-editor')
-export class EnhancedTemplatesCardEditor
-  extends LitElement
-  implements LovelaceCardEditor {
+export class EnhancedTemplatesCardEditor extends LitElement implements LovelaceCardEditor {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @internalProperty() private _config?: EnhancedTemplatesCardConfig;
   @internalProperty() private _helpers?: any;
@@ -53,25 +47,23 @@ export class EnhancedTemplatesCardEditor
     return html`
       <div class="card-config">
         <div class="values">
-          <paper-dropdown-menu label="${localize('config.registry')}">
-            <paper-listbox
-              slot="dropdown-content"
-              .selected=${this._config?.registry || 'area'}
-              attr-for-selected="value"
-              @selected-changed=${this._valueChanged}
-              .configValue=${'registry'}
-            >
-              <paper-item value="area">${localize('area.one')}</paper-item>
-              <paper-item value="entity">${localize('entity.one')}</paper-item>
-              <paper-item value="person">${localize('person.one')}</paper-item>
-            </paper-listbox>
-          </paper-dropdown-menu>
+          <ha-select
+            id="registry"
+            class="input"
+            .label=${localize('config.registry')}
+            .value=${this._config?.registry || 'area'}
+            @selected=${this._valueChanged}
+          >
+            <mwc-list-item value="area">${localize('area.one')}</mwc-list-item>
+            <mwc-list-item value="entity">${localize('entity.one')}</mwc-list-item>
+            <mwc-list-item value="person">${localize('person.one')}</mwc-list-item>
+          </ha-select>
           <div class="row">
             <ha-switch
+              id="hide_title"
               style="--mdc-theme-secondary:var(--switch-checked-color);"
               .checked=${!!this._config?.hide_title}
               @change=${this._valueChanged}
-              .configValue=${'hide_title'}
             >
             </ha-switch>
             <div>
@@ -80,10 +72,10 @@ export class EnhancedTemplatesCardEditor
           </div>
           <div class="row">
             <ha-switch
+              id="hide_intro"
               style="--mdc-theme-secondary:var(--switch-checked-color);"
               .checked=${!!this._config?.hide_intro}
               @change=${this._valueChanged}
-              .configValue=${'hide_intro'}
             >
             </ha-switch>
             <div>
@@ -106,23 +98,21 @@ export class EnhancedTemplatesCardEditor
     this._helpers = await (window as any).loadCardHelpers();
   }
 
-  private _valueChanged(ev): void {
+  private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
 
-    const target = ev.target;
+    const target = ev.target as HTMLInputElement;
 
-    if (!target.configValue) return;
+    if (!target) return;
 
-    const value =
-      target.configValue === 'registry' ? ev.detail.value : target.checked;
+    const value: string | boolean | null | undefined = target.id === 'registry' ? target.value : target.checked;
 
-    if (value === this._config[target.configValue]) return;
+    if (value === this._config[target.id]) return;
 
-    console.log(`value changed for ${target.configValue}: ${value}`);
-    if (['', null, undefined].includes(value)) {
-      delete this._config[target.configValue];
+    if (['', null, undefined].includes(value as string | null | undefined)) {
+      delete this._config[target.id];
     } else {
-      this._config = { ...this._config, [target.configValue]: value };
+      this._config = { ...this._config, [target.id]: value };
     }
 
     fireEvent(this, 'config-changed', { config: this._config });

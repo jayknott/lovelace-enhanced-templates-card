@@ -9,12 +9,7 @@ import {
   css,
   internalProperty,
 } from 'lit-element';
-import {
-  HomeAssistant,
-  LovelaceCard,
-  LovelaceCardEditor,
-  getLovelace,
-} from 'custom-card-helpers';
+import { HomeAssistant, LovelaceCard, LovelaceCardEditor, getLovelace } from 'custom-card-helpers';
 import { Connection, createCollection } from 'home-assistant-js-websocket';
 import { Store } from 'home-assistant-js-websocket/dist/store';
 
@@ -34,9 +29,7 @@ import { localize } from './localize/localize';
 
 /* eslint no-console: 0 */
 console.info(
-  `%c  ENHANCED-TEMPLATES-CARD  \n%c  ${localize(
-    'common.version',
-  )} ${CARD_VERSION}            `,
+  `%c  ENHANCED-TEMPLATES-CARD  \n%c  ${localize('common.version')} ${CARD_VERSION}            `,
   'color: orange; font-weight: bold; background: black',
   'color: white; font-weight: bold; background: dimgray',
 );
@@ -53,9 +46,7 @@ const _ha_entity_picker = async () => {
   if (customElements.get('ha-entity-picker')) return;
 
   await customElements.whenDefined('partial-panel-resolver');
-  const ppr = document.createElement(
-    'partial-panel-resolver',
-  ) as HaPartialCustomElement;
+  const ppr = document.createElement('partial-panel-resolver') as HaPartialCustomElement;
   ppr.hass = {
     panels: [{ url_path: 'tmp', component_name: 'developer-tools' }],
   };
@@ -64,9 +55,7 @@ const _ha_entity_picker = async () => {
   await ppr.routerOptions.routes.tmp.load();
 
   await customElements.whenDefined('developer-tools-router');
-  const dtr = document.createElement(
-    'developer-tools-router',
-  ) as HaPartialCustomElement;
+  const dtr = document.createElement('developer-tools-router') as HaPartialCustomElement;
   await dtr.routerOptions.routes.state.load();
 };
 
@@ -76,18 +65,14 @@ const fetchAreaRegistry = (conn: Connection) =>
       type: 'config/area_registry/list',
     })
     .then((areas) =>
-      (areas as AreaRegistryEntry[]).sort((ent1, ent2) => {
-        if (ent1.name > ent2.name) return 1;
-        if (ent1.name < ent2.name) return -1;
+      (areas as AreaRegistryEntry[]).sort((entry_a, entry_b) => {
+        if (entry_a.name > entry_b.name) return 1;
+        if (entry_a.name < entry_b.name) return -1;
         return 0;
       }),
     );
 
-const debounce = <T extends (...args) => unknown>(
-  func: T,
-  wait,
-  immediate = false,
-): T => {
+const debounce = <T extends (...args) => unknown>(func: T, wait, immediate = false): T => {
   let timeout;
   // @ts-ignore
   return function (...args) {
@@ -109,26 +94,17 @@ const debounce = <T extends (...args) => unknown>(
   };
 };
 
-const subscribeAreaRegistryUpdates = (
-  conn: Connection,
-  store: Store<AreaRegistryEntry[]>,
-) =>
+const subscribeAreaRegistryUpdates = (conn: Connection, store: Store<AreaRegistryEntry[]>) =>
   conn.subscribeEvents(
     debounce(
-      () =>
-        fetchAreaRegistry(conn).then((areas: AreaRegistryEntry[]) =>
-          store.setState(areas, true),
-        ),
+      () => fetchAreaRegistry(conn).then((areas: AreaRegistryEntry[]) => store.setState(areas, true)),
       500,
       true,
     ),
     'area_registry_updated',
   );
 
-const subscribeAreaRegistry = (
-  conn: Connection,
-  onChange: (areas: AreaRegistryEntry[]) => void,
-) =>
+const subscribeAreaRegistry = (conn: Connection, onChange: (areas: AreaRegistryEntry[]) => void) =>
   createCollection<AreaRegistryEntry[]>(
     '_areaRegistry',
     fetchAreaRegistry,
@@ -141,59 +117,43 @@ const _config_elements = async () => {
   if (customElements.get('ha-area-picker')) return;
 
   await customElements.whenDefined('partial-panel-resolver');
-  const ppr = document.createElement(
-    'partial-panel-resolver',
-  ) as HaPartialCustomElement;
+  const ppr = document.createElement('partial-panel-resolver') as HaPartialCustomElement;
   ppr.hass = { panels: [{ url_path: 'tmp', component_name: 'config' }] };
   ppr._updateRoutes();
 
   await ppr.routerOptions.routes.tmp.load();
 
   await customElements.whenDefined('ha-panel-config');
-  const pc = document.createElement(
-    'ha-panel-config',
-  ) as HaPartialCustomElement;
+  const pc = document.createElement('ha-panel-config') as HaPartialCustomElement;
 
   await pc.routerOptions.routes.devices.load();
   await customElements.whenDefined('ha-config-devices');
-  const cd = document.createElement(
-    'ha-config-devices',
-  ) as HaPartialCustomElement;
+  const cd = document.createElement('ha-config-devices') as HaPartialCustomElement;
   cd.firstUpdated({});
 
   // await cd.routerOptions.routes.device.load();
   await customElements.whenDefined('ha-config-device-page');
-  const cdp = document.createElement(
-    'ha-config-device-page',
-  ) as HaPartialCustomElement;
+  const cdp = document.createElement('ha-config-device-page') as HaPartialCustomElement;
   cdp.firstUpdated({});
 
   await customElements.whenDefined('dialog-device-registry-detail');
-  const drd = document.createElement(
-    'dialog-device-registry-detail',
-  ) as HaPartialCustomElement;
+  const drd = document.createElement('dialog-device-registry-detail') as HaPartialCustomElement;
   // cdp.firstUpdated({});
   (drd as any).render();
 
   await pc.routerOptions.routes.entities.load();
   await customElements.whenDefined('ha-config-entities');
-  const ce = document.createElement(
-    'ha-config-entities',
-  ) as HaPartialCustomElement;
+  const ce = document.createElement('ha-config-entities') as HaPartialCustomElement;
   ce.firstUpdated({});
 
   await customElements.whenDefined('ha-area-picker');
   const ap = document.createElement('ha-area-picker');
-
-  console.log("You're finally here");
 };
 
 @customElement('enhanced-templates-card')
 export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
-    return document.createElement(
-      'enhanced-templates-card-editor',
-    ) as LovelaceCardEditor;
+    return document.createElement('enhanced-templates-card-editor') as LovelaceCardEditor;
   }
 
   public static getStubConfig(): object {
@@ -228,23 +188,21 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     if (hash && hash !== this._last_hash) {
       switch (this.config.registry) {
         case 'entity':
-          this._entityPicked({ detail: { value: hash } });
+          // this._selectedEntity = hash;
           break;
         case 'person':
-          this._personPicked({ detail: { value: hash } });
+          // this._personPicked({ detail: { value: hash } });
           break;
         case 'area':
         default:
-          this._areaPicked({ detail: { value: hash } });
+        // this._areaPicked({ detail: { value: hash } });
       }
     }
 
     this._last_hash = hash;
 
     if (!this._unsub) {
-      fetchAreaRegistry(this._hass.connection).then(
-        (areas) => (this._areas = areas),
-      );
+      fetchAreaRegistry(this._hass.connection).then((areas) => (this._areas = areas));
 
       this._unsub = subscribeAreaRegistry(this._hass.connection!, (areas) => {
         this._areas = areas;
@@ -279,10 +237,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
 
   // https://lit-element.polymer-project.org/guide/templates
   protected render(): TemplateResult | void {
-    let title: string,
-      intro: string,
-      render: () => TemplateResult,
-      update: () => void;
+    let title: string, intro: string, render: () => TemplateResult, update: () => void;
 
     switch (this.config.registry) {
       case 'entity':
@@ -309,9 +264,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
       <ha-card .header=${this.config.hide_title ? null : title}>
         <div class="card-content">${this._intro(intro)} ${render()}</div>
         <div class="buttons">
-          <mwc-button @click=${update} .disabled=${this._disabled()}>
-            ${localize('update.one')}
-          </mwc-button>
+          <mwc-button @click=${update} .disabled=${this._disabled()}> ${localize('update.one')} </mwc-button>
         </div>
       </ha-card>
     `;
@@ -338,83 +291,63 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     allow_null = false,
     disabled = false,
     onSelectedChanged,
-    placeholder,
     show_description = false,
   }: {
     allow_null?: boolean;
     disabled?: boolean;
-    onSelectedChanged?: (event: any) => Promise<void> | void;
-    placeholder?: string;
+    onSelectedChanged: (this: GlobalEventHandlers, ev: CustomEvent) => any | null;
     show_description?: boolean;
   }): TemplateResult {
     return html`
-      <paper-dropdown-menu
-        class="full-width"
-        label-float
-        dynamic-align
+      <ha-select
+        class="input"
         .label=${localize('settings.area')}
         .disabled=${disabled}
-        .placeholder=${placeholder}
+        .value=${this._area_id || ''}
+        @selected=${onSelectedChanged}
       >
-        <paper-listbox
-          slot="dropdown-content"
-          attr-for-selected="item-name"
-          .selected=${this._selectedArea?.id}
-          @selected-changed=${onSelectedChanged}
-        >
-          ${!allow_null
-            ? null
-            : html`<paper-item item-name="">None</paper-item>`}
-          ${this._areas?.map(
-            (area) => html`
-              <paper-item item-name=${area.area_id}> ${area.name} </paper-item>
-            `,
-          )}
-        </paper-listbox>
-      </paper-dropdown-menu>
+        ${!allow_null ? null : html`<mwc-list-item value=""></mwc-list-item>`}
+        ${this._areas?.map((area) => html`<mwc-list-item .value=${area.area_id}>${area.name}</mwc-list-item> `)}
+      </ha-select>
       ${!show_description
         ? null
-        : html`<div class=${disabled ? 'disabled' : 'secondary'}>
-            ${localize('settings.area_description')}
-          </div>`}
+        : html`<div class=${disabled ? 'disabled' : 'secondary'}>${localize('settings.area_description')}</div>`}
     `;
   }
 
-  private _nameInput({
-    placeholder,
-  }: {
-    placeholder?: string;
-  }): TemplateResult {
+  private _nameInput({ placeholder }: { placeholder?: string }): TemplateResult {
     return html`
-      <paper-input
-        .value=${this._name}
-        @value-changed=${this._nameChanged}
+      <ha-textfield
+        class="input"
+        .disabled=${this._disabled()}
         .label=${this._hass.localize('ui.dialogs.entity_registry.editor.name')}
         .placeholder=${placeholder}
-        .disabled=${this._disabled()}
+        .value=${this._name || ''}
+        @change=${this._nameChanged}
       >
-      </paper-input>
+      </ha-textfield>
     `;
   }
 
   private _sortOrderInput(): TemplateResult {
     return html`
-      <paper-input
-        .value=${this._sortOrder}
-        @value-changed=${this._sortOrderChanged}
-        pattern="[0-9]+([.][0-9]+)?"
-        type="number"
-        .label=${localize('settings.sort_order')}
-        .placeholder=${DEFAULT_SORT_ORDER}
+      <ha-textfield
+        class="input"
         .disabled=${this._disabled()}
+        .label=${localize('settings.sort_order')}
+        pattern="[0-9]+([.][0-9]+)?"
+        .placeholder=${DEFAULT_SORT_ORDER}
+        .value=${this._sortOrder || ''}
+        type="number"
+        @change=${this._sortOrderChanged}
       >
-      </paper-input>
+      </ha-textfield>
     `;
   }
 
   private _visibleInput(): TemplateResult {
     return html`
-      <div class="row">
+      <div class="row input">
         <ha-switch
           style="--mdc-theme-secondary:var(--switch-checked-color);"
           .checked=${this._visible}
@@ -423,9 +356,7 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
         >
         </ha-switch>
         <div>
-          <div class=${this._disabled() ? 'disabled' : ''}>
-            ${localize('settings.visible')}
-          </div>
+          <div class=${this._disabled() ? 'disabled' : ''}>${localize('settings.visible')}</div>
           <div class=${this._disabled() ? 'disabled' : 'secondary'}>
             ${localize('settings.visible_area_description')}
           </div>
@@ -437,58 +368,35 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   private _areaSettings(): TemplateResult {
     return html`
       ${this._areaDropDown({ onSelectedChanged: this._areaPicked })}
-      <div>
-        <ha-icon-input
-          .value=${this._icon}
-          @value-changed=${this._iconChanged}
-          .label=${this._hass.localize(
-            'ui.dialogs.entity_registry.editor.icon',
-          )}
-          .placeholder=${DEFAULT_AREA_ICON}
+      <div class="input">
+        <ha-icon-picker
           .disabled=${this._disabled()}
-          .errorMessage=${this._hass.localize(
-            'ui.dialogs.entity_registry.editor.icon_error',
-          )}
+          .label=${this._hass.localize('ui.dialogs.entity_registry.editor.icon')}
+          .placeholder=${DEFAULT_AREA_ICON}
+          .value=${this._icon}
+          @change=${this._iconChanged}
         >
-        </ha-icon-input>
+        </ha-icon-picker>
       </div>
-      ${this._nameInput({ placeholder: this._selectedArea?.original_name })}
-      ${this._sortOrderInput()} ${this._visibleInput()}
+      ${this._nameInput({ placeholder: this._selectedArea?.original_name })} ${this._sortOrderInput()}
+      ${this._visibleInput()}
     `;
   }
 
   private _entitySettings(): TemplateResult {
-    const area_placeholder = this._selectedEntity?.original_area_id
-      ? this._areas?.find(
-          (area) => area.area_id === this._selectedEntity?.original_area_id,
-        )?.name
-      : undefined;
-
     const entity_types =
       this._entity_types?.length == 0
         ? undefined
-        : html`<paper-dropdown-menu
-            class="full-width"
-            label-float
-            dynamic-align
+        : html`<ha-select
+            class="input"
             .label=${localize('settings.entity_type')}
             .disabled=${this._disabled() || this._entity_types?.length == 0}
             .placeholder=${this._selectedEntity?.original_entity_type}
+            .value=${this._entity_type || ''}
+            @selected=${this._entityTypePicked}
           >
-            <paper-listbox
-              slot="dropdown-content"
-              attr-for-selected="item-name"
-              .selected=${this._entity_type || ''}
-              @selected-changed=${this._entityTypePicked}
-            >
-              <paper-item item-name="">None</paper-item>
-              ${this._entity_types?.map(
-                (type) => html`
-                  <paper-item item-name=${type}> ${type} </paper-item>
-                `,
-              )}
-            </paper-listbox>
-          </paper-dropdown-menu>`;
+            ${this._entity_types?.map((type) => html` <mwc-list-item .value=${type}>${type}</mwc-list-item> `)}
+          </ha-select>`;
 
     return html`
       <div>
@@ -503,7 +411,6 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
         allow_null: true,
         disabled: this._disabled(),
         onSelectedChanged: this._entityAreaPicked,
-        placeholder: area_placeholder,
       })}
       ${entity_types}
       ${this._sortOrderInput()}
@@ -530,33 +437,26 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private async _areaPicked(ev): Promise<void> {
-    if (ev.detail.value === '') {
-      this._selectedArea = { id: ev.detail.value };
+  private async _areaPicked(ev: CustomEvent): Promise<void> {
+    const newValue = (ev.target as HTMLSelectElement).value;
+    if (newValue === '') {
+      this._selectedArea = { id: newValue };
     } else {
       try {
         this._selectedArea = await this._hass.callWS({
           type: 'enhanced_templates_area_settings',
-          area_id: ev.detail.value,
+          area_id: newValue,
         });
       } catch {}
     }
-    this._icon =
-      this._selectedArea?.icon === DEFAULT_AREA_ICON
-        ? undefined
-        : this._selectedArea?.icon;
-    this._name =
-      this._selectedArea?.name === this._selectedArea?.original_name
-        ? undefined
-        : this._selectedArea?.name;
+    this._icon = this._selectedArea?.icon === DEFAULT_AREA_ICON ? undefined : this._selectedArea?.icon;
+    this._name = this._selectedArea?.name === this._selectedArea?.original_name ? undefined : this._selectedArea?.name;
     this._sortOrder =
-      this._selectedArea?.sort_order === DEFAULT_SORT_ORDER
-        ? undefined
-        : this._selectedArea?.sort_order;
+      this._selectedArea?.sort_order === DEFAULT_SORT_ORDER ? undefined : this._selectedArea?.sort_order;
     this._visible = this._selectedArea?.visible;
   }
 
-  private async _entityPicked(ev): Promise<void> {
+  private async _entityPicked(ev: CustomEvent): Promise<void> {
     if (ev.detail.value === '') {
       this._selectedEntity = { entity_id: ev.detail.value };
     } else {
@@ -573,23 +473,19 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
         ? undefined
         : this._selectedEntity?.area_id;
     this._entity_type =
-      this._selectedEntity?.entity_type ===
-      this._selectedEntity?.original_entity_type
+      this._selectedEntity?.entity_type === this._selectedEntity?.original_entity_type
         ? undefined
         : this._selectedEntity?.entity_type;
     this._sortOrder =
-      this._selectedEntity?.sort_order === DEFAULT_SORT_ORDER
-        ? undefined
-        : this._selectedEntity?.sort_order;
+      this._selectedEntity?.sort_order === DEFAULT_SORT_ORDER ? undefined : this._selectedEntity?.sort_order;
     this._visible = this._selectedEntity?.visible;
   }
 
-  private async _personPicked(ev): Promise<void> {
+  private async _personPicked(ev: CustomEvent): Promise<void> {
     if (ev.detail.value === '') {
       this._selectedPerson = { id: ev.detail.value };
     } else {
       try {
-        console.log(ev.detail.value.split('.')[1]);
         this._selectedPerson = await this._hass.callWS({
           type: 'enhanced_templates_person_settings',
           person_id: ev.detail.value.split('.')[1],
@@ -597,41 +493,35 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
       } catch {}
     }
 
-    console.log(this._selectedPerson);
-
     this._name =
-      this._selectedPerson?.name === this._selectedPerson?.original_name
-        ? undefined
-        : this._selectedPerson?.name;
+      this._selectedPerson?.name === this._selectedPerson?.original_name ? undefined : this._selectedPerson?.name;
     this._sortOrder =
-      this._selectedPerson?.sort_order === DEFAULT_SORT_ORDER
-        ? undefined
-        : this._selectedPerson?.sort_order;
+      this._selectedPerson?.sort_order === DEFAULT_SORT_ORDER ? undefined : this._selectedPerson?.sort_order;
     this._visible = this._selectedPerson?.visible;
   }
 
-  private _entityAreaPicked(ev): void {
-    this._area_id = ev.detail.value;
+  private _entityAreaPicked(ev: CustomEvent): void {
+    this._area_id = (ev.target as HTMLSelectElement).value;
   }
 
-  private _entityTypePicked(ev): void {
-    this._entity_type = ev.detail.value;
+  private _entityTypePicked(ev: CustomEvent): void {
+    this._entity_type = (ev.target as HTMLSelectElement).value;
   }
 
-  private _iconChanged(ev): void {
-    this._icon = ev.detail.value;
+  private _iconChanged(ev: CustomEvent): void {
+    this._icon = (ev.target as HTMLInputElement).value;
   }
 
-  private _nameChanged(ev): void {
-    this._name = ev.detail.value;
+  private _nameChanged(ev: CustomEvent): void {
+    this._name = (ev.target as HTMLInputElement).value;
   }
 
-  private _sortOrderChanged(ev): void {
-    this._sortOrder = ev.detail.value;
+  private _sortOrderChanged(ev: CustomEvent): void {
+    this._sortOrder = parseInt((ev.target as HTMLInputElement).value);
   }
 
-  private _visibleChanged(ev): void {
-    this._visible = ev.target.checked;
+  private _visibleChanged(ev: CustomEvent): void {
+    this._visible = (ev.target as HTMLInputElement).checked;
   }
 
   private _updateAreaSettings(): void {
@@ -681,15 +571,10 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
         color: var(--disabled-text-color);
       }
 
-      .full-width {
-        width: 100%;
-      }
-
       .buttons {
         width: 100%;
         box-sizing: border-box;
-        border-top: 1px solid
-          var(--mdc-dialog-scroll-divider-color, rgba(0, 0, 0, 0.12));
+        border-top: 1px solid var(--mdc-dialog-scroll-divider-color, rgba(0, 0, 0, 0.12));
         display: flex;
         justify-content: space-between;
         flex-direction: row-reverse;
@@ -699,6 +584,16 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
         padding-bottom: max(env(safe-area-inset-bottom), 8px);
       }
 
+      .input {
+        margin-top: 24px;
+      }
+
+      ha-icon-picker > ha-combo-box,
+      ha-select,
+      ha-textfield {
+        width: 100%;
+      }
+
       ha-switch {
         margin-right: 16px;
       }
@@ -706,8 +601,6 @@ export class EnhancedTemplateCard extends LitElement implements LovelaceCard {
   }
 
   public getCardSize(): number {
-    return (
-      8 + (this.config.hide_title ? 0 : 2) + (this.config.hide_intro ? 0 : 1)
-    );
+    return 8 + (this.config.hide_title ? 0 : 2) + (this.config.hide_intro ? 0 : 1);
   }
 }
